@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../models/demo_models.dart';
-import '../services/file_demo_service.dart';
+import '../demo/cau_09_stream.dart';
 import '../widgets/demo_widgets.dart';
 
 enum _FileChoice { json, ndjson, empty, missing }
@@ -51,7 +51,8 @@ class _ProgressDemoPanelState extends State<ProgressDemoPanel> {
     final generation = ++_generation;
     setState(() {
       _reading = true;
-      // CÂU 09: tạo stream trong sự kiện, giữ ở State. Không tạo trong build.
+      // C9.STATE — CHỈ VÀO ĐÂY nếu hỏi stream được tạo ở đâu.
+      // NÓI: "Em tạo stream khi bấm nút và giữ trong State, không tạo trong build."
       _stream = _read(File(path), generation);
     });
     widget.onRunningChanged(true);
@@ -145,48 +146,10 @@ class _ProgressDemoPanelState extends State<ProgressDemoPanel> {
         ),
         const SizedBox(height: 20),
         // Key mới xóa snapshot cũ khi bắt đầu lại, kể cả sau lỗi hoặc đổi file.
-        StreamBuilder<ReadProgress>(
+        FileProgressBar(
           key: ValueKey(_generation),
           stream: _stream,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return ErrorMessage('Không đọc được file: ${snapshot.error}');
-            }
-            final progress = snapshot.data;
-            if (progress == null) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  LinearProgressIndicator(value: _reading ? null : 0),
-                  const SizedBox(height: 8),
-                  Text(_reading ? 'Đang mở file…' : 'Chưa đọc file / đã dừng.'),
-                ],
-              );
-            }
-            final done =
-                snapshot.connectionState == ConnectionState.done &&
-                progress.isComplete;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                LinearProgressIndicator(
-                  value: progress.fraction,
-                  minHeight: 10,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '${(progress.fraction * 100).toStringAsFixed(0)}%',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                Text(
-                  '${formatBytes(progress.bytesRead)} / '
-                  '${formatBytes(progress.totalBytes)}\n'
-                  'Thời gian đọc: ${formatDuration(progress.elapsedMicroseconds)}',
-                ),
-                if (done) const Text('Đã đọc xong toàn bộ byte.'),
-              ],
-            );
-          },
+          reading: _reading,
         ),
         const Divider(height: 32),
         const Text(
@@ -207,7 +170,7 @@ StreamBuilder<ReadProgress>(
     return LinearProgressIndicator(value: snap.data?.fraction ?? 0);
   },
 )
-// Hàm async* đếm chunk.length và yield tiến độ: xem service.''',
+// Code đang chạy: lib/demo/cau_09_stream.dart, các mốc C9.1 đến C9.4.''',
         ),
       ],
     );

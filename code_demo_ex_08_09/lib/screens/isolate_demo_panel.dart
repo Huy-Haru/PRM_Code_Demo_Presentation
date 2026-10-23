@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/demo_models.dart';
-import '../services/file_demo_service.dart';
+import '../demo/cau_08_isolate.dart';
 import '../widgets/demo_widgets.dart';
 
 class IsolateDemoPanel extends StatefulWidget {
@@ -213,18 +213,23 @@ class _IsolateDemoPanelState extends State<IsolateDemoPanel> {
           'worker NDJSON chỉ giữ từng dòng và thống kê nhỏ.',
         ),
         const CodeExample(
-          code: '''// Hàm top-level chạy ở worker trên native.
-Future<AnalysisResult> analyzeJsonFile(AnalysisRequest request) async {
-  final raw = await File(request.inputPath).readAsString();
-  final rows = jsonDecode(raw) as List;
-  // Tính thống kê và await ghi summary ngay tại worker.
+          code: '''// C8.1: Main gọi worker trên native.
+Future<AnalysisResult> analyzeWithCompute(AnalysisRequest request) {
+  return compute(analyzeJsonFile, request);
 }
-final result = await compute(analyzeJsonFile, request);
 
-// Worker stream: xem _ndjsonWorker() trong service.
-final inbox = ReceivePort();
-final worker = await Isolate.spawn(workerMain, inbox.sendPort);
-// Nhận progress / kết quả / lỗi; đóng port và worker khi xong.''',
+// C8.2: Worker tự đọc, parse, xử lý và ghi.
+Future<AnalysisResult> analyzeJsonFile(AnalysisRequest request) async {
+  final watch = Stopwatch()..start();
+  final text = await File(request.inputPath).readAsString();
+  final rows = jsonDecode(text) as List<dynamic>;
+  final stats = StudentStatistics();
+  for (final row in rows) {
+    stats.add(row as Map<String, dynamic>);
+  }
+  return saveStatistics(stats, request.outputPath, watch);
+}
+// Isolate.spawn: xem C8.3 -> C8.5 trong lib/demo/cau_08_isolate.dart.''',
         ),
       ],
     );
